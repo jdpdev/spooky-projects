@@ -1,0 +1,84 @@
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include "Adafruit_LEDBackpack.h"
+
+Adafruit_8x8matrix matrix = Adafruit_8x8matrix();
+byte x = 3;
+byte y = 3;
+byte targetX = 1;
+byte targetY = 3;
+
+byte minX = 1;
+byte maxX = 5;
+byte minY = 2;
+byte maxY = 5;
+unsigned long nextEyeMove = 0;
+
+byte lid = 3;
+unsigned long nextBlink = 1000;
+
+void setup() {
+  Serial.begin(9600);
+  Serial.println("8x8 LED Matrix Test");
+  
+  matrix.begin(0x70);
+  matrix.setBrightness(2);
+}
+
+void loop() {
+  stepPupil();
+  stepEyelid();
+  
+  matrix.fillScreen(LED_ON);
+  drawPupil(x, y);
+  drawEyelid();
+  matrix.writeDisplay();
+
+  delay(250);
+}
+
+void stepPupil() {
+  if (millis() < nextEyeMove) {
+    return;
+  }
+  
+  byte nextX = movePupilTo(x, targetX);
+  byte nextY = movePupilTo(y, targetY);
+
+  if (nextX == x && nextY == y) {
+    targetX = random(minX, maxX);
+    targetY = random(minY, maxY);
+
+    nextEyeMove = millis() + random(1000, 5000);
+  }
+
+  x = nextX;
+  y = nextY;
+}
+
+byte movePupilTo(byte from, byte to) {
+  if (from == to) {
+    return to;
+  }
+
+  if (from > to) {
+    return from - 1;
+  }
+
+  return from + 1;
+}
+
+void drawPupil(byte x, byte y) {
+  matrix.fillRect(x, y, 3, 3, LED_OFF);
+  matrix.drawPixel(x + 1, y + 1, LED_ON);
+}
+
+void stepEyelid() {
+  if (millis() > nextBlink) {
+    
+  }
+}
+
+void drawEyelid() {
+  matrix.fillRect(0, 0, 8, lid, LED_OFF);
+}
