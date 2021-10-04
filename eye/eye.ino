@@ -14,15 +14,18 @@ byte minY = 2;
 byte maxY = 5;
 unsigned long nextEyeMove = 0;
 
-byte lid = 3;
+byte lid = 0;
+byte lidDirection = 0;
 unsigned long nextBlink = 1000;
+unsigned long nextBlinkStep = 0;
 
 void setup() {
   Serial.begin(9600);
   Serial.println("8x8 LED Matrix Test");
   
   matrix.begin(0x70);
-  matrix.setBrightness(2);
+  matrix.setBrightness(0);
+  matrix.blinkRate(0);
 }
 
 void loop() {
@@ -34,7 +37,7 @@ void loop() {
   drawEyelid();
   matrix.writeDisplay();
 
-  delay(250);
+  delay(125);
 }
 
 void stepPupil() {
@@ -74,8 +77,19 @@ void drawPupil(byte x, byte y) {
 }
 
 void stepEyelid() {
-  if (millis() > nextBlink) {
-    
+  if (millis() < nextBlink) return;
+  //if (millis() < nextBlinkStep) return;
+
+  if (lid >= 7) {
+    lidDirection = -2;
+  }
+
+  lid += lidDirection;
+
+  if (lid <= 0) {
+    nextBlink = millis() + random(3000, 5000);
+    lidDirection = 2;
+    lid = 0;
   }
 }
 
