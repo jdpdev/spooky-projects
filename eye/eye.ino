@@ -2,6 +2,8 @@
 #include <Adafruit_GFX.h>
 #include "Adafruit_LEDBackpack.h"
 
+#define ROUND_EYES
+
 Adafruit_8x8matrix matrix = Adafruit_8x8matrix();
 byte x = 3;
 byte y = 3;
@@ -32,7 +34,7 @@ void loop() {
   stepPupil();
   stepEyelid();
   
-  matrix.fillScreen(LED_ON);
+  drawEyes();
   drawPupil(x, y);
   drawEyelid();
   matrix.writeDisplay();
@@ -57,6 +59,15 @@ void stepPupil() {
 
   x = nextX;
   y = nextY;
+}
+
+void drawEyes() {
+#ifdef ROUND_EYES
+  matrix.fillScreen(LED_OFF);
+  matrix.fillRoundRect(0, 0, 8, 8, 3, LED_ON);
+#else
+  matrix.fillScreen(LED_ON);
+#endif
 }
 
 byte movePupilTo(byte from, byte to) {
@@ -94,5 +105,7 @@ void stepEyelid() {
 }
 
 void drawEyelid() {
+  if (lid == 0) return;
+  
   matrix.fillRect(0, 0, 8, lid, LED_OFF);
 }
