@@ -6,6 +6,8 @@ I made some arduino-powered ghosts to put in my windows
 ### Essential
 - 1x [Adafruit Metro Mini](https://www.adafruit.com/product/2590) -- Compatible with Arduino Uno; any Arduino could be used but might require pin changes.
 - 2x [8x8 LED Matrix with I2C Backpack](https://www.adafruit.com/product/1051) -- Comes in multiple colors, but the blue can be hard to resolve from a distance.
+  - Requires the **Adafruit LED Backpack** and **Adafruit GFX** libraries from the Arduino library manager
+  - See [this tutorial](https://learn.adafruit.com/adafruit-led-backpack/1-2-8x8-matrix-assembly) for assembling the backpack.
 - [Common Cathode LEDs](https://www.sparkfun.com/products/9853) -- Could be replaced with single-color LEDs. I use about six per ghost.
 
 ### Optional
