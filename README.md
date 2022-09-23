@@ -17,6 +17,13 @@ I made some arduino-powered ghosts to put in my windows
 
 ## Construction
 
+
+
+> ### Warning About the Shape Files
+> The inset shapes are not sized to account for cutting kerf, so you will have to handle that. The service I used for cutting, [Send Cut Send](https://sendcutsend.com/) does it for you, but other services may not.
+
+
+
 ![Construction Overview](https://i.imgur.com/3eMJmzB.jpg)
 
 ![Diffuser](https://i.imgur.com/Mn5IlGe.jpg)
