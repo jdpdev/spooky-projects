@@ -1,6 +1,7 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include "Adafruit_LEDBackpack.h"
+#include <EEPROM.h>
 
 #define ROUND_EYES
 
@@ -22,7 +23,7 @@ unsigned long nextBlink = 1000;
 unsigned long nextBlinkStep = 0;
 
 byte buttonWatcher = HIGH;
-byte currentColor = 0;
+byte currentColor = EEPROM.read(0);
 const byte COLOR_COUNT = 7;
 const byte fillColors[COLOR_COUNT][3] = {
   {0, 0, 255},
@@ -74,6 +75,8 @@ void listenForButton() {
     if (currentColor >= COLOR_COUNT) {
       currentColor = 0;
     }
+
+    EEPROM.write(0, currentColor);
   }
 
   buttonWatcher = currentButton;
