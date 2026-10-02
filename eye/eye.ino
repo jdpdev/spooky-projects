@@ -5,6 +5,10 @@
 
 #define ROUND_EYES
 
+#define GROUND_MODE 1
+
+#define BRIGHT_SCALE 0.25
+
 Adafruit_8x8matrix matrix = Adafruit_8x8matrix();
 byte x = 3;
 byte y = 3;
@@ -40,7 +44,6 @@ void setup() {
   Serial.println("8x8 LED Matrix Test");
 
   pinMode(7, INPUT_PULLUP);
-  pinMode(8, OUTPUT);
   
   matrix.begin(0x70);
   matrix.setBrightness(0);
@@ -58,15 +61,14 @@ void loop() {
   drawEyelid();
   matrix.writeDisplay();
 
-  analogWrite(6, fillColors[currentColor][0]);
-  analogWrite(9, fillColors[currentColor][1]);
-  analogWrite(10, fillColors[currentColor][2]);
+  analogWrite(6, fillColors[currentColor][0] * BRIGHT_SCALE);
+  analogWrite(9, fillColors[currentColor][1] * BRIGHT_SCALE);
+  analogWrite(10, fillColors[currentColor][2] * BRIGHT_SCALE);
 
   delay(125);
 }
 
 void listenForButton() {
-  digitalWrite(8, HIGH);
   byte currentButton = digitalRead(7);
 
   if (currentButton != buttonWatcher && currentButton == LOW) {
