@@ -47,11 +47,13 @@
             const TICK_RATE = 50
 
             const PUPIL_SPEED = 50;
+            const OFFSET_SPEED = 30;
 
             const EYELID_OPEN = -280 - 560;
             const EYELID_CLOSED = -280;
             const EYELID_SPEED = 400;
 
+            let eyeOffset = [0, 0]
             let pupilPosition = [0, 0]
 
             let leftEyePos = [
@@ -116,7 +118,14 @@
             }
 
             function setEyeTransform(eye, position, scale) {
-                eye.setAttribute("style", `transform: translate(${position[0]}px, ${position[1]}px) scale(${scale})`)
+                const [ox, oy] = eyeOffset;
+                eye.setAttribute("style", `transform: translate(${position[0] + eyeOffset[0]}px, ${position[1] + eyeOffset[1]}px) scale(${scale})`)
+            }
+
+            function updateEyeOffset(offset) {
+                eyeOffset = offset;
+                setEyeTransform(getLeftEye(), leftEyePos, eyeScale);
+                setEyeTransform(getRightEye(), rightEyePos, eyeScale);
             }
 
 // #region Vector ***************************************************************************************
