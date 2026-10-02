@@ -1,0 +1,341 @@
+<html>
+    <head>
+        <style>
+            body {
+                background-color: #000;
+            }
+
+            svg {
+                border: 2px solid #f0f;
+            }
+
+            .eyebox {
+                border: 2px solid #ccc;
+            }
+
+            .clicktarget {
+                fill: #000;
+            }
+
+            .eye {
+                fill: #fff;
+            }
+
+            .pupil {
+                fill: #000;
+            }
+
+            .eyelid {
+                fill: #0003;
+            }
+
+            .tickup {
+                fill: #0ff;
+            }
+
+            .tickdown {
+                fill: #f0f;
+            }
+        </style>
+
+        <script>
+            let ready = false;
+
+            const EYE_RADIUS = 240;
+            const PUPIL_RADIUS = 140;
+            
+            const TICK_RATE = 50
+
+            const PUPIL_SPEED = 50;
+
+            const EYELID_OPEN = -280 - 560;
+            const EYELID_CLOSED = -280;
+            const EYELID_SPEED = 400;
+
+            let pupilPosition = [0, 0]
+
+            let leftEyePos = [
+                Number(localStorage.getItem("leftX") ?? leftEyePos[0]), 
+                Number(localStorage.getItem("leftY") ?? leftEyePos[1])
+            ];
+            let rightEyePos = [
+                Number(localStorage.getItem("rightX") ?? rightEyePos[0]), 
+                Number(localStorage.getItem("rightY") ?? rightEyePos[1])
+            ]
+            let eyeScale = localStorage.getItem("scale") ?? 1
+
+            function initialize() {
+                if (ready) {
+                    return;
+                }
+
+                const test = document.getElementById("left-pupil");
+
+                if (test == undefined) {
+                    setTimeout(initialize, 10);
+                    return;
+                }
+
+                ready = true;
+
+                document.querySelectorAll(".eye").forEach(e => e.setAttribute("r", EYE_RADIUS))
+                document.querySelectorAll(".pupil").forEach(p => p.setAttribute("r", PUPIL_RADIUS))
+                document.querySelectorAll(".clicktarget").forEach(t => {
+                    t.setAttribute("x", -EYE_RADIUS)
+                    t.setAttribute("y", -EYE_RADIUS)
+                    t.setAttribute("width", EYE_RADIUS * 2)
+                    t.setAttribute("height", EYE_RADIUS * 2)
+                })
+
+                const leftEye = getLeftEye()
+                leftEye.addEventListener("mousedown", onClickLeftEye);
+                setEyeTransform(leftEye, leftEyePos, eyeScale)
+
+                const rightEye = getRightEye()
+                rightEye.addEventListener("mousedown", onClickRightEye);
+                setEyeTransform(rightEye, rightEyePos, eyeScale)
+
+                planNextPupilMove()
+            }
+
+            function getLeftEye() {
+                return document.getElementById("left-eye");
+            }
+
+            function getRightEye() {
+                return document.getElementById("right-eye");
+            }
+
+            function getEye(which) {
+                switch (which) {
+                    case "left":    return getLeftEye();
+                    case "right":   return getLeftEye();
+                }
+
+                return null;
+            }
+
+            function setEyeTransform(eye, position, scale) {
+                eye.setAttribute("style", `transform: translate(${position[0]}px, ${position[1]}px) scale(${scale})`)
+            }
+
+// #region Vector ***************************************************************************************
+
+            function vectorLength(vector) {
+                const [x, y] = vector;
+                return Math.sqrt(x * x + y * y);
+            }
+
+            /// vector is [number, number]
+            function vectorNormalize(vector) {
+                const [x, y] = vector;
+                const length = vectorLength(vector);
+
+                return [x / length, y / length];
+            }
+
+            function vectorScale(vector, amount) {
+                const [x, y] = vector;
+                return [x * amount, y * amount];
+            }
+
+            function vectorAdd(a, b) {
+                const [ax, ay] = a;
+                const [bx, by] = b;
+
+                return [ax + bx, ay + by];
+            }
+
+            function currentTime() {
+                return performance.now();
+            } 
+
+// #endregion
+
+// #region Dragging eyes ***************************************************************************************
+
+            function onClickLeftEye(e) {
+                startEyeDrag(e.currentTarget, "left")                
+            }
+
+            function onClickRightEye(e) {
+                startEyeDrag(e.currentTarget, "right")                
+            }
+
+            function startEyeDrag(eye, which) {
+                const onMove = (me) => onDragEye(me, eye, which)
+                window.addEventListener("mousemove", onMove)
+                window.addEventListener("mouseup", () => window.removeEventListener("mousemove", onMove))
+            }
+
+            function onDragEye(me, eye, which) {
+                const position = which === "left" ? leftEyePos : rightEyePos
+
+                position[0] += me.movementX;
+                position[1] += me.movementY;
+                setEyeTransform(eye, position, eyeScale)
+
+                if (which === "left") {
+                    localStorage.setItem("leftX", position[0])
+                    localStorage.setItem("leftY", position[1])
+                } else {
+                    localStorage.setItem("rightX", position[0])
+                    localStorage.setItem("rightY", position[1])
+                }
+            }
+// #endregion
+
+// #region Adjust scale ***************************************************************************************
+            
+            function setScale(value) {
+                eyeScale = value
+                setEyeTransform(getLeftEye(), leftEyePos, eyeScale)
+                setEyeTransform(getRightEye(), rightEyePos, eyeScale)
+
+                localStorage.setItem("scale", eyeScale)
+            }
+
+            function scaleUp() {
+                setScale(eyeScale + 0.05)
+            }
+
+            function scaleDown() {
+                setScale(eyeScale - 0.05)
+            }
+
+// #endregion
+
+// #region Pupil ******************************************************************************************
+            function planNextPupilMove() {
+                const next = currentTime() + 500 + Math.random() * 2000;
+
+                const theta = Math.random() * Math.PI * 2;
+                const distance = Math.random() * (EYE_RADIUS - PUPIL_RADIUS + 20);
+
+                const x = Math.cos(theta);
+                const y = Math.sin(theta) / 2;
+
+                actionMovePupil(next, [x * distance, y * distance], () => planNextPupilMove())
+            }
+
+            function actionMovePupil(nextTime, target, onDone) {
+                let lastActionTime = currentTime();
+
+                function actionTick() {
+                    const time = currentTime();
+                    const delta = (time - lastActionTime) / 1000;
+
+                    if (time >= nextTime) {
+                        if (!movePupil(delta, target)) {
+                            onDone();   
+                            return
+                        }
+                    }
+
+                    lastActionTime = time;
+                    setTimeout(actionTick, TICK_RATE);
+                }
+
+                setTimeout(actionTick, TICK_RATE);
+            }
+
+            function movePupil(delta, target) {
+                const [tx, ty] = target;
+                const [x, y] = pupilPosition;
+                const heading = [tx - x, ty - y];
+                const direction = vectorNormalize(heading);
+                const timeStep = PUPIL_SPEED * delta;
+
+                if (timeStep >= vectorLength(heading)) {
+                    positionPupils(target);
+                    return false;
+                }
+
+                const step = vectorScale(direction, timeStep);
+                const next = vectorAdd([x, y], step);
+
+                positionPupils(next);
+
+                return true;
+            }
+
+            function positionPupils([x, y]) {
+                pupilPosition = [x, y];
+
+                const pupils = document.querySelectorAll(".pupil");
+                pupils.forEach(p => {
+                    p.setAttribute("cx", x)
+                    p.setAttribute("cy", y)
+                })
+            }
+// #endregion
+
+            initialize();
+        </script>
+    </head>
+    <body>
+        <svg viewBox="0 0 1920 1080">
+            <g
+                id="left-eye"
+                class="eyebox"
+                style="transform: translate(360px, 300px);"
+            >
+                <ellipse 
+                    cx="0"
+                    cy="0"
+                    rx="240"
+                    ry="320"
+                    class="eye"
+                />
+
+                <ellipse 
+                    id="left-pupil"
+                    cx="0"
+                    cy="0"
+                    rx="120"
+                    ry="160"
+                    class="pupil"
+                />
+            </g>
+
+            <g
+                id="right-eye"
+                class="eyebox"
+                style="transform: translate(1500px, 300px);"
+            >
+                <ellipse 
+                    cx="0"
+                    cy="0"
+                    rx="240"
+                    ry="320"
+                    class="eye"
+                />
+
+                <ellipse 
+                    id="left-pupil"
+                    cx="0"
+                    cy="0"
+                    rx="120"
+                    ry="160"
+                    class="pupil"
+                />
+            </g>
+
+            <circle
+                class="tickup"
+                cx="900"
+                cy="100"
+                r="30"
+                onclick="scaleUp()"
+            />
+
+            <circle
+                class="tickdown"
+                cx="1020"
+                cy="100"
+                r="30"
+                onclick="scaleDown()"
+            />
+        </svg>
+    </body>
+</html>

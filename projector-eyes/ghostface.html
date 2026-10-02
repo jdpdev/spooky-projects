@@ -1,0 +1,257 @@
+<html>
+    <head>
+        <style>
+            body {
+                background-color: black;
+            }
+
+            .eye {
+                fill: #fff;
+            }
+
+            .pupil {
+                fill: #000;
+            }
+
+            .eyelid {
+                fill: #000;
+            }
+        </style>
+
+        <script>
+            const TICK_RATE = 50
+            const EYELID_OPEN = -280 - 560;
+            const EYELID_CLOSED = -280;
+            const EYELID_SPEED = 400;
+
+            let pupil;
+            let eyelid;
+            const eyeRadius = 280;
+            const pupilRadius = 120;
+            let lastTime;
+
+            let nextMoveTime = 0;
+            let moveToPoint = [0, 0];
+            const moveSpeed = 50;
+
+            function initialize() {
+                console.log(`[initialize]`)
+
+                pupil = document.getElementById("left-pupil");
+                eyelid = document.getElementById("eyelid");
+                lastTime = currentTime();
+
+                if (pupil != undefined) {
+                    planNextPupilMove(lastTime);
+                }
+
+                if (eyelid != undefined) {
+                    eyelid.setAttribute("y", EYELID_OPEN);
+                    planNextEyelidMove();
+                }
+
+                //requestAnimationFrame(tick);
+                setTimeout(tick, TICK_RATE);
+            }
+
+            function tick(now) {
+                if (now == undefined) {
+                    now = currentTime();
+                }
+
+                const delta = (now - lastTime) / 1000;
+                //console.log(`[tick] delta: ${delta} (${now} - ${lastTime})`)
+                lastTime = now;
+
+                if (pupil == undefined) {
+                    initialize();
+                }
+
+                setTimeout(tick, TICK_RATE);
+            }
+
+            function vectorLength(vector) {
+                const [x, y] = vector;
+                return Math.sqrt(x * x + y * y);
+            }
+
+            /// vector is [number, number]
+            function vectorNormalize(vector) {
+                const [x, y] = vector;
+                const length = vectorLength(vector);
+
+                return [x / length, y / length];
+            }
+
+            function vectorScale(vector, amount) {
+                const [x, y] = vector;
+                return [x * amount, y * amount];
+            }
+
+            function vectorAdd(a, b) {
+                const [ax, ay] = a;
+                const [bx, by] = b;
+
+                return [ax + bx, ay + by];
+            }
+
+            function currentTime() {
+                return performance.now();
+            } 
+
+// **** Pupil ******************************************************************************************
+            function planNextPupilMove() {
+                const next = currentTime() + 500 + Math.random() * 2000;
+
+                const theta = Math.random() * Math.PI * 2;
+                const distance = Math.random() * (eyeRadius - pupilRadius + 20);
+
+                const x = Math.cos(theta);
+                const y = Math.sin(theta) / 2;
+
+                moveToPoint = [x * distance, y * distance];
+
+                actionMovePupil(next, () => planNextPupilMove())
+            }
+
+            function actionMovePupil(nextTime, onDone) {
+                let lastActionTime = currentTime();
+
+                function actionTick() {
+                    const time = currentTime();
+                    const delta = (time - lastActionTime) / 1000;
+
+                    if (time >= nextTime) {
+                        if (!movePupil(delta)) {
+                            onDone();   
+                            return
+                        }
+                    }
+
+                    lastActionTime = time;
+                    setTimeout(actionTick, TICK_RATE);
+                }
+
+                setTimeout(actionTick, TICK_RATE);
+            }
+
+            function movePupil(delta) {
+                const [tx, ty] = moveToPoint;
+                const x = +pupil.getAttribute("cx");
+                const y = +pupil.getAttribute("cy");
+                const heading = [tx - x, ty - y];
+                const direction = vectorNormalize(heading);
+                const timeStep = moveSpeed * delta;
+
+                if (timeStep >= vectorLength(heading)) {
+                    pupil.setAttribute("cx", tx);
+                    pupil.setAttribute("cy", ty);
+                    return false;
+                }
+
+                const step = vectorScale(direction, timeStep);
+                const next = vectorAdd([x, y], step);
+
+                pupil.setAttribute("cx", next[0])
+                pupil.setAttribute("cy", next[1])
+
+                return true;
+            }
+
+// **** Eyelid ******************************************************************************************
+
+            function planNextEyelidMove() {
+                const time = 10000 + (Math.random() * 10000)
+
+                function done() {
+                    planNextEyelidMove();
+                }
+
+                setTimeout(() => actionMoveEyelidDown(done), time);
+            }
+
+            function actionMoveEyelidDown(onDone) {
+                let lastActionTime = currentTime();
+
+                function actionTick() {
+                    const time = currentTime();
+                    const delta = (time - lastActionTime) / 1000;
+                    lastActionTime = time;
+
+                    const step = EYELID_SPEED * delta;
+                    const y = moveEyelid(step);
+
+                    if (y >= EYELID_CLOSED) {
+                        setTimeout(() => actionMoveEyelidUp(onDone), 2000);
+                        eyelid.setAttribute("y", EYELID_CLOSED);
+                    } else {
+                        setTimeout(actionTick, TICK_RATE);
+                    }
+                }
+
+                setTimeout(actionTick, TICK_RATE)
+            }
+
+            function actionMoveEyelidUp(onDone) {
+                let lastActionTime = currentTime();
+
+                function actionTick() {
+                    const time = currentTime();
+                    const delta = (time - lastActionTime) / 1000;
+                    lastActionTime = time;
+
+                    if (moveEyelid(-EYELID_SPEED * delta) <= EYELID_OPEN) {
+                        onDone();
+                        eyelid.setAttribute("y", EYELID_OPEN);
+                    } else {
+                        setTimeout(actionTick, TICK_RATE);
+                    }
+                }
+
+                setTimeout(actionTick, TICK_RATE)
+            }
+
+            function moveEyelid(step) {
+                const y = Number(eyelid.getAttribute("y")) + step;
+                eyelid.setAttribute("y", y);
+                return y;
+            }
+
+            (function() {
+                initialize();
+            })()
+        </script>
+    </head>
+    <body>
+        <svg viewBox="0 0 1280 720">
+            <g
+                id="left-eye"
+                style="transform: translate(360px, 300px);"
+            >
+                <circle 
+                    cx="0"
+                    cy="0"
+                    r="280"
+                    class="eye"
+                />
+
+                <circle 
+                    id="left-pupil"
+                    cx="0"
+                    cy="0"
+                    r="120"
+                    class="pupil"
+                />
+
+                <rect
+                    id="eyelid"
+                    class="eyelid"
+                    x="-280"
+                    y="-280"
+                    width="560"
+                    height="560"
+                />
+            </g>
+        </svg>
+    </body>
+</html>
